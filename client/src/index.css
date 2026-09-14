@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------
+   Design tokens
+   One accent (emerald - a "money/growth" green) drives every
+   interactive element: buttons, the active nav state, focus rings,
+   and single-series chart marks. Category colors (per expense
+   category) will live in utils/constants.js as a fixed-order
+   categorical palette, kept separate from this UI accent.
+------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  --accent-50: #ecfdf5;
+  --accent-100: #d1fae5;
+  --accent-200: #a7f3d0;
+  --accent-300: #6ee7b7;
+  --accent-400: #34d399;
+  --accent-500: #10b981;
+  --accent-600: #059669;
+  --accent-700: #047857;
+  --accent-800: #065f46;
+  --accent-900: #064e3b;
+  --accent-950: #022c22;
+
+  /* Chart chrome - light */
+  --chart-grid: #e7e5e4;
+  --chart-axis: #cbd5e1;
+  --chart-tick: #94a3b8;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e2e8f0;
+  --chart-tooltip-text: #1e293b;
+
+  /* Status (reserved meaning - income/positive, overspend/negative, warning) */
+  --status-good: #16a34a;
+  --status-warning: #d97706;
+  --status-critical: #dc2626;
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --chart-grid: #292524;
+  --chart-axis: #44403c;
+  --chart-tick: #78716c;
+  --chart-tooltip-bg: #1c1917;
+  --chart-tooltip-border: #292524;
+  --chart-tooltip-text: #f1f5f9;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+html.dark * {
+  scrollbar-color: #44403c transparent;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Focus rings - one consistent style app-wide instead of the browser default */
+:focus-visible {
+  outline: 2px solid var(--accent-500);
+  outline-offset: 2px;
+}
