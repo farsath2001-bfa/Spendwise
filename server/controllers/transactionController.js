@@ -1,5 +1,7 @@
+const { Readable } = require('stream');
 const asyncHandler = require('express-async-handler');
 const Transaction = require('../models/Transaction');
+const cloudinary = require('../utils/cloudinary');
 const { VALID_RECURRENCES, addInterval, processDueRecurring } = require('../utils/recurring');
 
 const VALID_TYPES = ['income', 'expense'];
@@ -167,4 +169,81 @@ const deleteTransaction = asyncHandler(async (req, res) => {
   res.json({ message: 'Transaction deleted.' });
 });
 
-module.exports = { getTransactions, getTransaction, createTransaction, updateTransaction, deleteTransaction };
+/** Uploads a buffer to Cloudinary without writing it to disk first. */
+const streamToCloudinary = (buffer) =>
+  new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: 'spendwise-receipts', resource_type: 'image' },
+      (error, result) => (result ? resolve(result) : reject(error))
+    );
+    Readable.from(buffer).pipe(uploadStream);
+  });
+
+/**
+ * POST /api/transactions/:id/receipt
+ * Expects a single-file multipart upload under the field name "receipt"
+ * (see uploadMiddleware.js). Replaces any receipt already on the
+ * transaction, deleting the old Cloudinary image so nothing orphaned piles
+ * up against the free-tier storage quota.
+ */
+const uploadReceipt = asyncHandler(async (req, res) => {
+  const transaction = await Transaction.findOne({ _id: req.params.id, user: req.user._id });
+  if (!transaction) {
+    res.status(404);
+    throw new Error('Transaction not found.');
+  }
+  if (!req.file) {
+    res.status(400);
+    throw new Error('No image file was uploaded.');
+  }
+
+  let result;
+  try {
+    result = await streamToCloudinary(req.file.buffer);
+  } catch (err) {
+    res.status(502);
+    throw new Error('Could not upload the image. Please try again.');
+  }
+
+  const oldPublicId = transaction.receiptPublicId;
+
+  transaction.receiptUrl = result.secure_url;
+  transaction.receiptPublicId = result.public_id;
+  await transaction.save();
+
+  if (oldPublicId) {
+    cloudinary.uploader.destroy(oldPublicId).catch(() => {});
+  }
+
+  res.json(transaction);
+});
+
+/** DELETE /api/transactions/:id/receipt */
+const deleteReceipt = asyncHandler(async (req, res) => {
+  const transaction = await Transaction.findOne({ _id: req.params.id, user: req.user._id });
+  if (!transaction) {
+    res.status(404);
+    throw new Error('Transaction not found.');
+  }
+
+  const oldPublicId = transaction.receiptPublicId;
+  transaction.receiptUrl = '';
+  transaction.receiptPublicId = '';
+  await transaction.save();
+
+  if (oldPublicId) {
+    cloudinary.uploader.destroy(oldPublicId).catch(() => {});
+  }
+
+  res.json(transaction);
+});
+
+module.exports = {
+  getTransactions,
+  getTransaction,
+  createTransaction,
+  updateTransaction,
+  deleteTransaction,
+  uploadReceipt,
+  deleteReceipt,
+};

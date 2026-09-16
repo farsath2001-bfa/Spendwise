@@ -4,11 +4,12 @@
 
 /* ------------------------------------------------------------------
    Design tokens
-   One accent (emerald - a "money/growth" green) drives every
-   interactive element: buttons, the active nav state, focus rings,
-   and single-series chart marks. Category colors (per expense
-   category) will live in utils/constants.js as a fixed-order
-   categorical palette, kept separate from this UI accent.
+   One accent (emerald - a "money/growth" green, distinct from the
+   Habit Tracker's indigo) drives every interactive element: buttons,
+   the active nav state, focus rings, and single-series chart marks.
+   Category colors (per expense category) live in utils/constants.js
+   as a fixed-order categorical palette, kept separate from this UI
+   accent - same split the Habit Tracker uses for habit colors.
 ------------------------------------------------------------------- */
 :root {
   color-scheme: light;
@@ -66,4 +67,127 @@ body {
 :focus-visible {
   outline: 2px solid var(--accent-500);
   outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------
+   Auth page motion
+   Login/Register/Forgot/Reset all share the same photo-backed layout,
+   so they share the same small set of keyframes: a gentle entrance for
+   the card and brand copy, a slow ambient drift on the blurred backdrop,
+   and a soft "growth pulse" ring on each page's hero icon badge - a nod
+   to the money/growth accent rather than a generic spinner or bounce.
+   Every use is wrapped in the `motion-safe:` variant in JSX, so a user
+   with prefers-reduced-motion set simply gets the static end state.
+------------------------------------------------------------------- */
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slow-drift {
+  from {
+    transform: scale(1.25);
+  }
+  to {
+    transform: scale(1.38);
+  }
+}
+
+@keyframes soft-pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(16, 185, 129, 0);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Login "radar dial" ring
+   The circular rotating-dash login control the person pointed to
+   directly (a Uiverse component, originally cyan #0ef on navy) -
+   recolored to the app's emerald accent so the ring reads as part of
+   SpendWise AI instead of a mismatched palette. Each dash's position
+   AND blink stagger both come from a single --i custom property set
+   per <span> in Login.jsx, exactly like the reference component.
+   The blink itself is skipped for prefers-reduced-motion - the ring
+   still shows, just as a static ring of dim ticks instead of an
+   endlessly animating one.
+------------------------------------------------------------------- */
+.login-ring {
+  /* Smaller on narrow screens so the full circle - not just the card inside
+     it - actually fits the viewport; more room on sm+ screens since there's
+     space to spare. Dash size, dash radius, and the inner content's max
+     width all derive from this one variable so nothing drifts out of sync
+     when it changes. */
+  --ring-size: 336px;
+  position: relative;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #0f172a;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+@media (min-width: 640px) {
+  .login-ring {
+    --ring-size: 400px;
+  }
+}
+
+/* The split-screen desktop layout has a whole half of the screen to itself,
+   so let the ring grow further there instead of staying tablet-sized. */
+@media (min-width: 1024px) {
+  .login-ring {
+    --ring-size: 480px;
+  }
+}
+
+/* A dedicated class, not a bare `span` selector - the login box's own logo
+   badge is also a <span> nested inside .login-ring, and a plain descendant
+   selector would clobber its Tailwind sizing/positioning classes. */
+.login-ring-dash {
+  position: absolute;
+  left: 0;
+  width: calc(var(--ring-size) * 0.08);
+  height: calc(var(--ring-size) * 0.015);
+  background: #1e3a34;
+  border-radius: 80px;
+  transform-origin: calc(var(--ring-size) / 2);
+  transform: rotate(calc(var(--i) * (360deg / 50)));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .login-ring-dash {
+    animation: ring-blink 3s linear infinite;
+    animation-delay: calc(var(--i) * (3s / 50));
+  }
+}
+
+@keyframes ring-blink {
+  0% {
+    background: #34d399;
+  }
+  25% {
+    background: #1e3a34;
+  }
+}
+
+.login-ring-content {
+  position: absolute;
+  width: 85%;
+  max-width: calc(var(--ring-size) * 0.53);
+  z-index: 1;
+  padding: calc(var(--ring-size) * 0.045);
 }

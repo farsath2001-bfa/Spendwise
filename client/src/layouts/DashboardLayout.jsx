@@ -70,7 +70,7 @@ function UserRow() {
       <button
         onClick={logout}
         title="Log out"
-        className="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+        className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
       >
         <LogOut size={16} />
       </button>
@@ -84,7 +84,7 @@ export default function DashboardLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:flex">
         <BrandRow />
         <NavLinks />
         <UserRow />
@@ -92,20 +92,20 @@ export default function DashboardLayout() {
 
       {/* Mobile top bar */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 lg:hidden">
+        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:hidden">
           <div className="flex items-center gap-2">
             <img src="/logo-icon.png" alt="" className="h-7 w-7" />
             <span className="font-bold text-slate-900 dark:text-white">SpendWise AI</span>
           </div>
           <button
             onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <Menu size={20} />
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
@@ -119,7 +119,7 @@ export default function DashboardLayout() {
               <BrandRow />
               <button
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X size={18} />
               </button>

@@ -21,6 +21,9 @@ import {
   Plus,
   X,
   AlertTriangle,
+  CheckCircle2,
+  Circle,
+  ListChecks,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -68,21 +71,51 @@ function useIsDarkMode() {
   return isDark;
 }
 
-function StatCard({ icon: Icon, label, value, tone }) {
+/**
+ * Animates a number counting up from 0 to `target` on mount (and whenever
+ * `target` changes, e.g. after a quick-add). Purely cosmetic - the real
+ * value is always what's rendered once the animation settles, so nothing
+ * downstream ever reads this, it's local to the stat card's display only.
+ */
+function useCountUp(target, duration = 900) {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    if (!Number.isFinite(target)) return undefined;
+    let raf;
+    const start = performance.now();
+    const animate = (now) => {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic - fast start, gentle landing
+      setValue(target * eased);
+      if (t < 1) raf = requestAnimationFrame(animate);
+      else setValue(target);
+    };
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+
+  return value;
+}
+
+function StatCard({ icon: Icon, label, value, formatter, tone }) {
+  const animated = useCountUp(value);
   const toneClasses = {
     emerald: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
     red: 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400',
     slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
   };
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-3">
         <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${toneClasses[tone]}`}>
           <Icon size={16} />
         </span>
         <div className="min-w-0">
           <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="truncate text-lg font-bold text-slate-900 dark:text-white">{value}</p>
+          <p className="truncate text-lg font-bold tabular-nums text-slate-900 dark:text-white">
+            {formatter(animated)}
+          </p>
         </div>
       </div>
     </div>
@@ -91,7 +124,7 @@ function StatCard({ icon: Icon, label, value, tone }) {
 
 function StatCardSkeleton() {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-3">
         <Skeleton className="h-9 w-9 flex-shrink-0 rounded-lg" />
         <div className="min-w-0 flex-1 space-y-1.5">
@@ -132,9 +165,9 @@ function ProgressRowSkeleton() {
 
 function CardShell({ title, viewAllTo, children }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
+        <h3 className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h3>
         {viewAllTo && (
           <Link
             to={viewAllTo}
@@ -270,13 +303,31 @@ export default function Dashboard() {
   const quickAddCategoryOptions = quickAddType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const greeting = getGreeting();
 
+  // --- Onboarding checklist ---
+  // Per-browser, not per-account: whether it's dismissed and whether the AI
+  // Assistant has been tried (set from AIAssistant.jsx on first message) are
+  // both things that only make sense to remember locally, same as theme/
+  // currency. The other three steps are read straight from real data
+  // already loaded above, so they can't go stale or lie about progress.
+  const [onboardingDismissed, setOnboardingDismissed] = useLocalStorage('onboardingDismissed', false);
+  const [hasUsedAI] = useLocalStorage('onboardingUsedAI', false);
+
+  const onboardingSteps = [
+    { key: 'transaction', label: 'Add your first transaction', done: recentTransactions.length > 0, to: '/transactions' },
+    { key: 'budget', label: 'Set a monthly budget', done: budgets.length > 0, to: '/budget' },
+    { key: 'goal', label: 'Create a savings goal', done: goals.length > 0, to: '/goals' },
+    { key: 'ai', label: 'Ask the AI Assistant something', done: hasUsedAI, to: '/ai-assistant' },
+  ];
+  const onboardingDoneCount = onboardingSteps.filter((s) => s.done).length;
+  const showOnboarding = !loading && !onboardingDismissed && onboardingDoneCount < onboardingSteps.length;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Avatar name={user?.name} size={44} />
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               {greeting.text},{' '}
               <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
                 {user?.name || 'there'}
@@ -290,7 +341,7 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => openQuickAdd('income')}
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/70"
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/70"
           >
             <Plus size={14} />
             Income
@@ -298,13 +349,67 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => openQuickAdd('expense')}
-            className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-950/70"
+            className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-950/70"
           >
             <Plus size={14} />
             Expense
           </button>
         </div>
       </div>
+
+      {showOnboarding && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <ListChecks size={16} />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">Get set up</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {onboardingDoneCount} of {onboardingSteps.length} done
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOnboardingDismissed(true)}
+              className="flex-shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+              aria-label="Dismiss"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-[width] duration-500"
+              style={{ width: `${(onboardingDoneCount / onboardingSteps.length) * 100}%` }}
+            />
+          </div>
+
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {onboardingSteps.map((step) => (
+              <li key={step.key}>
+                {step.done ? (
+                  <span className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-500 line-through decoration-slate-300 dark:text-slate-500 dark:decoration-slate-700">
+                    <CheckCircle2 size={16} className="flex-shrink-0 text-emerald-500" />
+                    {step.label}
+                  </span>
+                ) : (
+                  <Link
+                    to={step.to}
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900"
+                  >
+                    <Circle size={16} className="flex-shrink-0 text-slate-300 dark:text-slate-600" />
+                    {step.label}
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -315,9 +420,9 @@ export default function Dashboard() {
       ) : (
         summary && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard icon={TrendingUp} label="Income this month" value={fmt(summary.currentMonth.totalIncome)} tone="emerald" />
-            <StatCard icon={TrendingDown} label="Expenses this month" value={fmt(summary.currentMonth.totalExpense)} tone="red" />
-            <StatCard icon={Wallet} label="Net this month" value={fmt(summary.currentMonth.net)} tone="slate" />
+            <StatCard icon={TrendingUp} label="Income this month" value={summary.currentMonth.totalIncome} formatter={fmt} tone="emerald" />
+            <StatCard icon={TrendingDown} label="Expenses this month" value={summary.currentMonth.totalExpense} formatter={fmt} tone="red" />
+            <StatCard icon={Wallet} label="Net this month" value={summary.currentMonth.net} formatter={fmt} tone="slate" />
           </div>
         )
       )}
@@ -550,15 +655,15 @@ export default function Dashboard() {
 
       {quickAddOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 sm:items-center">
-          <div className="my-8 w-full max-w-sm rounded-xl bg-white p-5 dark:bg-slate-900 sm:my-0">
+          <div className="my-8 w-full max-w-sm rounded-xl bg-white p-5 shadow-xl dark:bg-slate-900 sm:my-0">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white">
                 Quick add {quickAddType === 'income' ? 'income' : 'expense'}
               </h3>
               <button
                 type="button"
                 onClick={() => setQuickAddOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X size={18} />
               </button>
@@ -602,7 +707,7 @@ export default function Dashboard() {
                   onChange={(e) => setQuickAddForm((f) => ({ ...f, amount: e.target.value }))}
                   placeholder="0.00"
                   autoFocus
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
               </div>
 
@@ -613,7 +718,7 @@ export default function Dashboard() {
                 <select
                   value={quickAddForm.category}
                   onChange={(e) => setQuickAddForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 >
                   <option value="">Select a category</option>
                   {quickAddCategoryOptions.map((c) => (
@@ -633,7 +738,7 @@ export default function Dashboard() {
                   value={quickAddForm.note}
                   onChange={(e) => setQuickAddForm((f) => ({ ...f, note: e.target.value }))}
                   placeholder="e.g. Grocery run"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
               </div>
 
@@ -651,7 +756,7 @@ export default function Dashboard() {
               <button
                 type="submit"
                 disabled={quickAddSaving}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {quickAddSaving && <Spinner />}
                 {quickAddSaving ? 'Saving…' : `Add ${quickAddType === 'income' ? 'income' : 'expense'}`}

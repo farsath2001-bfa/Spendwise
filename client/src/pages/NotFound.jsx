@@ -12,14 +12,14 @@ export default function NotFound() {
       </span>
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">404</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Page not found</h1>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Page not found</h1>
         <p className="mt-2 max-w-sm text-sm text-slate-500 dark:text-slate-400">
           The page you're looking for doesn't exist or may have moved.
         </p>
       </div>
       <Link
         to={user ? '/dashboard' : '/login'}
-        className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+        className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
       >
         <ArrowLeft size={16} />
         {user ? 'Back to Dashboard' : 'Back to Login'}

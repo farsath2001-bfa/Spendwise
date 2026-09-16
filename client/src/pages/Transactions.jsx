@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Plus,
   Pencil,
@@ -11,6 +11,8 @@ import {
   SlidersHorizontal,
   Download,
   Repeat,
+  Paperclip,
+  ImagePlus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -19,6 +21,8 @@ import {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  uploadReceipt,
+  deleteReceipt,
 } from '../services/transactionService';
 import {
   EXPENSE_CATEGORIES,
@@ -51,6 +55,7 @@ const RECURRENCE_OPTIONS = [
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
 /** Mirrors one real transaction row's layout, so the list doesn't jump around once data arrives. */
 function TransactionRowSkeleton() {
   return (
@@ -123,6 +128,14 @@ export default function Transactions() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Receipt photo: kept separate from `form` since it's a File object (or
+  // a URL already stored on the server), not a plain field value.
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [receiptPreview, setReceiptPreview] = useState(''); // local object URL for a newly-picked file
+  const [existingReceiptUrl, setExistingReceiptUrl] = useState(''); // already saved on the server
+  const [removeExistingReceipt, setRemoveExistingReceipt] = useState(false);
+  const fileInputRef = useRef(null);
+
   const [deletingId, setDeletingId] = useState(null);
   const [exporting, setExporting] = useState(false);
 
@@ -149,10 +162,19 @@ export default function Transactions() {
     load();
   }, [load]);
 
+  const resetReceiptState = (existingUrl = '') => {
+    setReceiptFile(null);
+    if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    setReceiptPreview('');
+    setExistingReceiptUrl(existingUrl);
+    setRemoveExistingReceipt(false);
+  };
+
   const openAddModal = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setFormError('');
+    resetReceiptState('');
     setModalOpen(true);
   };
 
@@ -169,10 +191,36 @@ export default function Transactions() {
       endDate: t.endDate ? t.endDate.slice(0, 10) : '',
     });
     setFormError('');
+    resetReceiptState(t.receiptUrl || '');
     setModalOpen(true);
   };
 
   const closeModal = () => setModalOpen(false);
+
+  const handleReceiptSelect = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow picking the same file again later
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB.');
+      return;
+    }
+    if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    setReceiptFile(file);
+    setReceiptPreview(URL.createObjectURL(file));
+    setRemoveExistingReceipt(false);
+  };
+
+  const handleRemoveReceipt = () => {
+    if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    setReceiptFile(null);
+    setReceiptPreview('');
+    if (existingReceiptUrl) setRemoveExistingReceipt(true);
+  };
 
   const handleTypeChange = (type) => {
     setForm((f) => ({ ...f, type, category: '' }));
@@ -199,13 +247,28 @@ export default function Transactions() {
         recurrence: form.isRecurring ? form.recurrence : undefined,
         endDate: form.isRecurring ? form.endDate : '',
       };
+      let saved;
       if (editingId) {
-        await updateTransaction(editingId, payload);
+        saved = await updateTransaction(editingId, payload);
         toast.success('Transaction updated.');
       } else {
-        await createTransaction(payload);
+        saved = await createTransaction(payload);
         toast.success('Transaction added.');
       }
+
+      // Receipt is uploaded as a separate step once we have a real
+      // transaction id - a failure here shouldn't undo the transaction
+      // that already saved successfully, just warn about the photo.
+      try {
+        if (receiptFile) {
+          await uploadReceipt(saved._id, receiptFile);
+        } else if (removeExistingReceipt && existingReceiptUrl) {
+          await deleteReceipt(saved._id);
+        }
+      } catch (receiptErr) {
+        toast.error(receiptErr.response?.data?.message || 'Transaction saved, but the receipt photo failed to upload.');
+      }
+
       setModalOpen(false);
       load();
     } catch (err) {
@@ -268,7 +331,7 @@ export default function Transactions() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Transactions</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Transactions</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Every income and expense entry, newest first.
           </p>
@@ -278,7 +341,7 @@ export default function Transactions() {
             type="button"
             onClick={handleExport}
             disabled={exporting}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             {exporting ? <Spinner className="h-4 w-4" /> : <Download size={16} />}
             {exporting ? 'Exporting…' : 'Export CSV'}
@@ -286,7 +349,7 @@ export default function Transactions() {
           <button
             type="button"
             onClick={openAddModal}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
           >
             <Plus size={16} />
             Add transaction
@@ -318,14 +381,14 @@ export default function Transactions() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search category or note…"
-              className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-3 text-xs text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-3 text-xs text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
           </div>
 
           <button
             type="button"
             onClick={() => setShowDateFilters((s) => !s)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
               showDateFilters || dateFrom || dateTo
                 ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400'
                 : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800'
@@ -371,14 +434,14 @@ export default function Transactions() {
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-       {loading ? (
-  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-    {Array.from({ length: 6 }).map((_, i) => (
-      <TransactionRowSkeleton key={i} />
-    ))}
-  </ul>
-) : transactions.length === 0 ? (
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        {loading ? (
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <TransactionRowSkeleton key={i} />
+            ))}
+          </ul>
+        ) : transactions.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <ReceiptIcon size={28} className="text-slate-300 dark:text-slate-700" />
             <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
@@ -430,6 +493,18 @@ export default function Transactions() {
                           Auto
                         </span>
                       )}
+                      {t.receiptUrl && (
+                        <a
+                          href={t.receiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+                        >
+                          <Paperclip size={10} />
+                          Receipt
+                        </a>
+                      )}
                     </div>
                   </div>
                   <span
@@ -446,7 +521,7 @@ export default function Transactions() {
                     <button
                       type="button"
                       onClick={() => openEditModal(t)}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                      className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                       aria-label="Edit"
                     >
                       <Pencil size={15} />
@@ -455,7 +530,7 @@ export default function Transactions() {
                       type="button"
                       onClick={() => handleDelete(t._id)}
                       disabled={deletingId === t._id}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                      className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                       aria-label="Delete"
                     >
                       {deletingId === t._id ? <Spinner className="h-4 w-4" /> : <Trash2 size={15} />}
@@ -470,15 +545,15 @@ export default function Transactions() {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 sm:items-center">
-  <div className="my-8 w-full max-w-sm rounded-xl bg-white p-5 dark:bg-slate-900 sm:my-0">
+          <div className="my-8 w-full max-w-sm rounded-xl bg-white p-5 shadow-xl dark:bg-slate-900 sm:my-0">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white">
                 {editingId ? 'Edit transaction' : 'Add transaction'}
               </h3>
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X size={18} />
               </button>
@@ -521,7 +596,7 @@ export default function Transactions() {
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                   placeholder="0.00"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
               </div>
 
@@ -532,7 +607,7 @@ export default function Transactions() {
                 <select
                   value={form.category}
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 >
                   <option value="">Select a category</option>
                   {categoryOptions.map((c) => (
@@ -551,7 +626,7 @@ export default function Transactions() {
                   type="date"
                   value={form.date}
                   onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
               </div>
 
@@ -564,7 +639,7 @@ export default function Transactions() {
                   value={form.note}
                   onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
                   placeholder="e.g. Grocery run"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
               </div>
 
@@ -589,7 +664,7 @@ export default function Transactions() {
                       <select
                         value={form.recurrence}
                         onChange={(e) => setForm((f) => ({ ...f, recurrence: e.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       >
                         {RECURRENCE_OPTIONS.map((r) => (
                           <option key={r.value} value={r.value}>
@@ -606,10 +681,63 @@ export default function Transactions() {
                         type="date"
                         value={form.endDate}
                         onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       />
                     </div>
                   </div>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Receipt photo (optional)
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleReceiptSelect}
+                  className="hidden"
+                />
+
+                {receiptPreview || (existingReceiptUrl && !removeExistingReceipt) ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
+                    <img
+                      src={receiptPreview || existingReceiptUrl}
+                      alt="Receipt preview"
+                      className="h-14 w-14 flex-shrink-0 rounded-lg border border-slate-200 object-cover dark:border-slate-700"
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="truncate text-xs text-slate-500 dark:text-slate-400">
+                        {receiptFile ? receiptFile.name : 'Saved receipt'}
+                      </span>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                        >
+                          Replace
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveReceipt}
+                          className="text-xs font-medium text-red-500 hover:underline dark:text-red-400"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 py-3 text-xs font-medium text-slate-500 transition-colors hover:border-emerald-400 hover:text-emerald-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-emerald-700 dark:hover:text-emerald-400"
+                  >
+                    <ImagePlus size={15} />
+                    Add receipt photo
+                  </button>
                 )}
               </div>
 
@@ -622,7 +750,7 @@ export default function Transactions() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {saving && <Spinner />}
                 {saving ? 'Saving…' : editingId ? 'Save changes' : 'Add transaction'}

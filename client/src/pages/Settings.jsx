@@ -70,7 +70,7 @@ export default function Settings() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Manage your profile, currency, and appearance preferences.
         </p>
@@ -83,7 +83,7 @@ export default function Settings() {
               key={value}
               type="button"
               onClick={() => setTheme(value)}
-              className={`flex flex-col items-center gap-1.5 rounded-lg border py-3 text-xs font-medium transition ${
+              className={`flex flex-col items-center gap-1.5 rounded-lg border py-3 text-xs font-medium transition-colors ${
                 theme === value
                   ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
                   : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800'
@@ -100,7 +100,7 @@ export default function Settings() {
         <select
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
         >
           {CURRENCIES.map((c) => (
             <option key={c.code} value={c.code}>
@@ -133,7 +133,7 @@ export default function Settings() {
                 type="text"
                 value={profileForm.name}
                 onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </div>
           </div>
@@ -145,13 +145,13 @@ export default function Settings() {
               type="email"
               value={profileForm.email}
               onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
           </div>
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {saving ? <Spinner /> : <Save size={16} />}
             {saving ? 'Saving…' : 'Save changes'}
@@ -184,7 +184,7 @@ export default function Settings() {
                 value={passwordForm.password}
                 onChange={(e) => setPasswordForm((f) => ({ ...f, password: e.target.value }))}
                 placeholder="At least 6 characters"
-                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </div>
           </div>
@@ -200,14 +200,14 @@ export default function Settings() {
                 value={passwordForm.confirmPassword}
                 onChange={(e) => setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))}
                 placeholder="Re-enter the new password"
-                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={passwordSaving}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {passwordSaving ? <Spinner /> : <Lock size={16} />}
             {passwordSaving ? 'Saving…' : 'Update password'}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wallet, PiggyBank, BarChart3, Bot, Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
+import { Wallet, PiggyBank, BarChart3, Bot, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/common/Spinner';
 
@@ -11,10 +11,14 @@ const FEATURES = [
   { icon: Bot, text: 'Ask the built-in AI where you can save' },
 ];
 
+// Number of dashes in the rotating ring around the login card - matches the
+// Uiverse reference (by Yaya12085) this component is modeled on.
+const RING_COUNT = 50;
+
 function BrandPanel() {
   return (
     <div className="relative z-10 hidden w-1/2 flex-col justify-center p-10 text-white lg:flex xl:p-14">
-      <div className="max-w-sm">
+      <div className="max-w-sm motion-safe:animate-[fade-slide-up_0.6s_ease-out_both]">
         <img src="/logo-icon.png" alt="" className="mb-6 h-14 w-14 drop-shadow-lg" />
         <h1 className="text-3xl font-bold xl:text-4xl drop-shadow-sm">SpendWise AI</h1>
         <p className="mt-3 text-sm text-emerald-50 xl:text-base drop-shadow-sm">
@@ -22,7 +26,11 @@ function BrandPanel() {
         </p>
         <ul className="mt-10 space-y-4">
           {FEATURES.map(({ icon: Icon, text }, i) => (
-            <li key={i} className="flex items-center gap-3 text-sm text-white xl:text-base drop-shadow-sm">
+            <li
+              key={i}
+              style={{ animationDelay: `${180 + i * 90}ms` }}
+              className="flex items-center gap-3 text-sm text-white xl:text-base drop-shadow-sm motion-safe:animate-[fade-slide-up_0.5s_ease-out_both]"
+            >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
                 <Icon size={16} />
               </span>
@@ -59,13 +67,18 @@ export default function Login() {
     }
   };
 
+  const floatingLabel =
+    'pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all ' +
+    'peer-focus:-top-0.5 peer-focus:rounded peer-focus:bg-slate-900 peer-focus:px-1.5 peer-focus:text-[10px] peer-focus:text-emerald-400 ' +
+    'peer-[&:not(:placeholder-shown)]:-top-0.5 peer-[&:not(:placeholder-shown)]:rounded peer-[&:not(:placeholder-shown)]:bg-slate-900 peer-[&:not(:placeholder-shown)]:px-1.5 peer-[&:not(:placeholder-shown)]:text-[10px]';
+
   return (
     <div className="relative flex h-screen overflow-hidden bg-slate-900">
       {/* Blurred, scaled-up copy fills every edge of the screen, so wherever the
           sharp image below doesn't reach (any screen wider/taller than its own
           ratio) shows soft, color-matched content instead of a flat black/white bar. */}
       <div
-        className="absolute inset-0 scale-125 bg-cover bg-center blur-2xl"
+        className="absolute inset-0 scale-125 bg-cover bg-center blur-2xl motion-safe:animate-[slow-drift_20s_ease-in-out_infinite_alternate]"
         style={{ backgroundImage: "url('/auth-bg.jpg')" }}
       />
       {/* The real image, sized so it always shows in full with nothing cropped. */}
@@ -75,89 +88,103 @@ export default function Login() {
       />
       {/* One continuous wash across the whole page - strong enough on the left for
           white text over the photo, fading to a light tint on the right so the
-          white form card sits on an airy background instead of a hard color split. */}
+          form card sits on an airy background instead of a hard color split. */}
       <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/75 via-emerald-400/25 to-white/85 dark:from-emerald-950/80 dark:via-emerald-900/45 dark:to-slate-950/85" />
 
       <BrandPanel />
 
       <div className="relative z-10 flex w-full flex-1 items-center justify-center overflow-y-auto px-4 py-6">
-        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
-          <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30 lg:hidden">
-            <LogIn size={20} />
-          </span>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Welcome back</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Log in to see where your money's going.
-          </p>
+        {/* The login box itself - the circular "radar dial" component the
+            person pointed to directly, recolored from cyan to the app's
+            emerald accent so the ring matches the background photo and the
+            rest of SpendWise AI, dropped into the same split-screen layout
+            as the other auth pages. .login-ring / .login-ring-content and
+            the ring-blink keyframe live in index.css. */}
+        <div
+          style={{ animationDelay: '120ms' }}
+          className="login-ring motion-safe:animate-[fade-slide-up_0.6s_ease-out_both]"
+        >
+          {Array.from({ length: RING_COUNT }).map((_, i) => (
+            <span key={i} className="login-ring-dash" style={{ '--i': i }} />
+          ))}
 
-          {error && (
-            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400">
-              {error}
+          <div className="login-ring-content">
+            <div className="flex flex-col items-center gap-1">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 p-1 ring-1 ring-white/10 motion-safe:animate-[soft-pulse-ring_2.5s_ease-in-out_infinite] lg:h-9 lg:w-9 lg:p-1.5">
+                <img src="/favicon.png" alt="SpendWise AI" className="h-full w-full object-contain" />
+              </span>
+              <h2 className="text-base font-bold tracking-tight text-emerald-400 lg:text-xl">Login</h2>
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Email
-              </label>
+            {error && <p className="mt-1.5 text-center text-[10px] leading-snug text-red-400 lg:text-xs">{error}</p>}
+
+            <form onSubmit={handleSubmit} className="mt-3 space-y-2 lg:mt-5 lg:space-y-3">
               <div className="relative">
-                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
+                  id="login-email"
                   type="email"
                   name="email"
                   required
                   value={form.email}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                  placeholder="you@example.com"
+                  placeholder=" "
+                  className="peer w-full rounded-full border-2 border-slate-700 bg-transparent px-3.5 py-2 text-sm text-slate-100 outline-none transition-colors focus:border-emerald-400 lg:px-5 lg:py-3 lg:text-base"
                 />
+                <label htmlFor="login-email" className={floatingLabel}>
+                  Email
+                </label>
               </div>
-            </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Password
-              </label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
+                  id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   required
                   minLength={6}
                   value={form.password}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                  placeholder="••••••••"
+                  placeholder=" "
+                  className="peer w-full rounded-full border-2 border-slate-700 bg-transparent px-3.5 py-2 pr-9 text-sm text-slate-100 outline-none transition-colors focus:border-emerald-400 lg:px-5 lg:py-3 lg:pr-11 lg:text-base"
                 />
+                <label htmlFor="login-password" className={floatingLabel}>
+                  Password
+                </label>
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-300 lg:right-4"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
-            >
-              {loading && <Spinner />}
-              {loading ? 'Logging in…' : 'Log in'}
-            </button>
-          </form>
+              <div className="flex justify-center pt-0.5">
+                <Link
+                  to="/forgot-password"
+                  className="text-[11px] text-slate-400 transition-colors hover:text-emerald-400 hover:underline lg:text-sm"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
 
-          <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-medium text-emerald-600 hover:underline dark:text-emerald-400">
-              Sign up
-            </Link>
-          </p>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70 lg:py-3 lg:text-base"
+              >
+                {loading && <Spinner />}
+                {loading ? 'Signing in…' : 'Login'}
+              </button>
+            </form>
+
+            <p className="mt-2 text-center text-[11px] lg:mt-4 lg:text-sm">
+              <Link to="/register" className="font-medium text-emerald-400 hover:underline">
+                Sign Up
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -12,6 +12,15 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     password: { type: String, required: [true, 'Please add a password'], minlength: 6, select: true },
+
+    // --- Forgot password ---
+    // We never store the raw reset token (it goes out in the email link
+    // only) - only its SHA-256 hash, so a database leak alone can't be used
+    // to reset anyone's password. resetPasswordExpire enforces a short
+    // window (see authController.forgotPassword) after which the token is
+    // simply ignored even if someone still has the link.
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpire: { type: Date, select: false },
   },
   { timestamps: true }
 );

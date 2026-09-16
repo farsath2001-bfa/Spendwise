@@ -14,7 +14,7 @@ const FEATURES = [
 function BrandPanel() {
   return (
     <div className="relative z-10 hidden w-1/2 flex-col justify-center p-10 text-white lg:flex xl:p-14">
-      <div className="max-w-sm">
+      <div className="max-w-sm motion-safe:animate-[fade-slide-up_0.6s_ease-out_both]">
         <img src="/logo-icon.png" alt="" className="mb-6 h-14 w-14 drop-shadow-lg" />
         <h1 className="text-3xl font-bold xl:text-4xl drop-shadow-sm">SpendWise AI</h1>
         <p className="mt-3 text-sm text-emerald-50 xl:text-base drop-shadow-sm">
@@ -22,7 +22,11 @@ function BrandPanel() {
         </p>
         <ul className="mt-10 space-y-4">
           {FEATURES.map(({ icon: Icon, text }, i) => (
-            <li key={i} className="flex items-center gap-3 text-sm text-white xl:text-base drop-shadow-sm">
+            <li
+              key={i}
+              style={{ animationDelay: `${180 + i * 90}ms` }}
+              className="flex items-center gap-3 text-sm text-white xl:text-base drop-shadow-sm motion-safe:animate-[fade-slide-up_0.5s_ease-out_both]"
+            >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
                 <Icon size={16} />
               </span>
@@ -65,7 +69,7 @@ export default function Register() {
           sharp image below doesn't reach shows soft, color-matched content
           instead of a flat black/white bar. */}
       <div
-        className="absolute inset-0 scale-125 bg-cover bg-center blur-2xl"
+        className="absolute inset-0 scale-125 bg-cover bg-center blur-2xl motion-safe:animate-[slow-drift_20s_ease-in-out_infinite_alternate]"
         style={{ backgroundImage: "url('/register-bg.png')" }}
       />
       {/* The real image, sized so it always shows in full with nothing cropped. */}
@@ -80,11 +84,14 @@ export default function Register() {
       <BrandPanel />
 
       <div className="relative z-10 flex w-full flex-1 items-center justify-center overflow-y-auto px-4 py-6">
-        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
-          <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30 lg:hidden">
+        <div
+          style={{ animationDelay: '120ms' }}
+          className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl motion-safe:animate-[fade-slide-up_0.6s_ease-out_both] dark:border-slate-800 dark:bg-slate-900 sm:p-8"
+        >
+          <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30 motion-safe:animate-[soft-pulse-ring_2.5s_ease-in-out_infinite] lg:hidden">
             <UserPlus size={20} />
           </span>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Create your account</h2>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Create your account</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Free forever. No card required.
           </p>
@@ -108,7 +115,7 @@ export default function Register() {
                   required
                   value={form.name}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   placeholder="Your name"
                 />
               </div>
@@ -126,7 +133,7 @@ export default function Register() {
                   required
                   value={form.email}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   placeholder="you@example.com"
                 />
               </div>
@@ -145,13 +152,13 @@ export default function Register() {
                   minLength={6}
                   value={form.password}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   placeholder="At least 6 characters"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-300"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}

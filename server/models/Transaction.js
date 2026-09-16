@@ -30,6 +30,14 @@ const transactionSchema = new mongoose.Schema(
     nextRunDate: { type: Date },
     endDate: { type: Date },
     recurringSource: { type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' },
+
+    // --- Receipt photo ---
+    // Set after a successful upload to Cloudinary (see uploadMiddleware.js /
+    // uploadReceipt controller). Storing the hosted URL (not the image
+    // itself) keeps documents small and lets the browser load it directly
+    // from Cloudinary's CDN.
+    receiptUrl: { type: String, default: '' },
+    receiptPublicId: { type: String, default: '' },
   },
   { timestamps: true }
 );

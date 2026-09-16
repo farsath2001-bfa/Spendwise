@@ -37,7 +37,7 @@ function useIsDarkMode() {
 
 function StatCardSkeleton() {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-3">
         <Skeleton className="h-9 w-9 flex-shrink-0 rounded-lg" />
         <div className="min-w-0 flex-1 space-y-1.5">
@@ -56,14 +56,14 @@ function StatCard({ icon: Icon, label, value, tone }) {
     slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
   };
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center gap-3">
         <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${toneClasses[tone]}`}>
           <Icon size={16} />
         </span>
         <div className="min-w-0">
           <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="truncate text-lg font-bold text-slate-900 dark:text-white">{value}</p>
+          <p className="truncate text-lg font-bold tabular-nums text-slate-900 dark:text-white">{value}</p>
         </div>
       </div>
     </div>
@@ -123,7 +123,7 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Analytics</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Analytics</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           This month's totals and your last 6 months of activity.
         </p>
@@ -146,8 +146,8 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 lg:col-span-3">
-          <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Income vs Expense</h3>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-3">
+          <h3 className="mb-4 text-sm font-semibold tracking-tight text-slate-900 dark:text-white">Income vs Expense</h3>
           {loading ? (
             <Skeleton className="h-[280px] w-full" />
           ) : data.monthlyTrend.every((m) => m.income === 0 && m.expense === 0) ? (
@@ -176,8 +176,8 @@ export default function Analytics() {
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
-          <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Spending by Category</h3>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
+          <h3 className="mb-4 text-sm font-semibold tracking-tight text-slate-900 dark:text-white">Spending by Category</h3>
           {loading ? (
             <Skeleton className="mx-auto h-[220px] w-[220px] rounded-full" />
           ) : categoryBreakdown.length === 0 ? (
