@@ -43,6 +43,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Spinner } from '../components/common/Spinner';
 import { Skeleton } from '../components/common/Skeleton';
 import Avatar from '../components/common/Avatar';
+import ProductTour from '../components/common/ProductTour';
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -321,6 +322,12 @@ export default function Dashboard() {
   const onboardingDoneCount = onboardingSteps.filter((s) => s.done).length;
   const showOnboarding = !loading && !onboardingDismissed && onboardingDoneCount < onboardingSteps.length;
 
+  // --- First-time product tour ---
+  // A separate mechanism from the checklist above: a one-time guided
+  // walkthrough rather than an ongoing to-do card. Runs once per browser,
+  // same storage pattern as the onboarding checklist.
+  const [tourDismissed, setTourDismissed] = useLocalStorage('productTourDismissed', false);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -337,7 +344,7 @@ export default function Dashboard() {
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Here's where things stand this month.</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div data-tour="quick-add" className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => openQuickAdd('income')}
@@ -765,6 +772,8 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {!loading && !tourDismissed && <ProductTour onDismiss={() => setTourDismissed(true)} />}
     </div>
   );
 }

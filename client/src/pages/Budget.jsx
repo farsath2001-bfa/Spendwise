@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Trash2, X, Wallet } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Wallet, Flame } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getBudgets, setBudget, deleteBudget } from '../services/budgetService';
+import { getBudgets, setBudget, deleteBudget, getBudgetStreak } from '../services/budgetService';
 import { EXPENSE_CATEGORIES, CATEGORY_MAP, CURRENCIES, DEFAULT_CURRENCY } from '../utils/constants';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Spinner } from '../components/common/Spinner';
@@ -50,6 +50,11 @@ export default function Budget() {
 
   const [deletingId, setDeletingId] = useState(null);
 
+  // Purely a "nice to have" gamification badge, so it's fetched on its own
+  // and fails silently - a streak endpoint hiccup shouldn't block the real
+  // budget data above from loading.
+  const [streak, setStreak] = useState(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -65,6 +70,12 @@ export default function Budget() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    getBudgetStreak()
+      .then(setStreak)
+      .catch(() => {});
+  }, []);
 
   const openAddModal = () => {
     setEditingId(null);
@@ -123,7 +134,18 @@ export default function Budget() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Monthly Budget</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Monthly Budget</h1>
+            {streak?.hasBudgets && streak.streak > 0 && (
+              <span
+                className="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400"
+                title={`Under budget every category, ${streak.streak} month${streak.streak === 1 ? '' : 's'} in a row`}
+              >
+                <Flame size={13} />
+                {streak.streak}-month streak
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Set a spending limit per category and track this month's progress.
           </p>

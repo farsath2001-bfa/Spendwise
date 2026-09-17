@@ -201,6 +201,10 @@ const uploadReceipt = asyncHandler(async (req, res) => {
   try {
     result = await streamToCloudinary(req.file.buffer);
   } catch (err) {
+    // Logged server-side (never sent to the client) so a misconfigured or
+    // missing CLOUDINARY_* env var shows up clearly in the Render logs
+    // instead of just a bare "502" with no way to tell why.
+    console.error('Cloudinary receipt upload failed:', err?.message || err);
     res.status(502);
     throw new Error('Could not upload the image. Please try again.');
   }
