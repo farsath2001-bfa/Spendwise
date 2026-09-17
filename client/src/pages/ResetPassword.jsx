@@ -77,6 +77,7 @@ export default function ResetPassword() {
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
                 required
                 minLength={6}
                 value={password}
@@ -103,6 +104,7 @@ export default function ResetPassword() {
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
                 required
                 minLength={6}
                 value={confirm}

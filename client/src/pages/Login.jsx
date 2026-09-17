@@ -124,6 +124,7 @@ export default function Login() {
                   id="login-email"
                   type="email"
                   name="email"
+                  autoComplete="email"
                   required
                   value={form.email}
                   onChange={handleChange}
@@ -140,6 +141,7 @@ export default function Login() {
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   name="password"
+                  autoComplete="current-password"
                   required
                   minLength={6}
                   value={form.password}

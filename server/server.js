@@ -19,10 +19,30 @@ const app = express();
 
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5174')
   .split(',')
-  .map((s) => s.trim());
+  .map((s) => s.trim().replace(/\/$/, '')) // tolerate a trailing slash in the env var
+  .filter(Boolean);
+
+// Logged once at boot so a CORS rejection is easy to diagnose from the
+// Render logs - "is CLIENT_URL even set to what I think it is?" is the
+// first thing to check when the browser reports a blocked preflight.
+console.log('CORS allowed origins:', allowedOrigins);
 
 app.use(helmet());
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(
+  cors({
+    origin(origin, callback) {
+      // No Origin header - same-origin requests, curl, Render's own health
+      // checks, server-to-server calls - always allowed through.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+        return callback(null, true);
+      }
+      console.warn(`CORS: rejected origin "${origin}" - not in CLIENT_URL (${allowedOrigins.join(', ')})`);
+      callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
@@ -33,6 +53,7 @@ app.use('/api/budgets', budgetRoutes);
 app.use('/api/goals', savingsGoalRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ai', aiRoutes);
+
 app.use(notFound);
 app.use(errorHandler);
 
