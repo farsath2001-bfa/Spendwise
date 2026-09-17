@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import PageLoader from './components/common/PageLoader';
+import ClickSpark from './components/common/ClickSpark';
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -64,11 +65,13 @@ function AppShell() {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px' } }} />
-        <AppShell />
-      </AuthProvider>
-    </ErrorBoundary>
+    <ClickSpark sparkColor="#10b981" sparkSize={10} sparkRadius={15} sparkCount={8} duration={400}>
+      <ErrorBoundary>
+        <AuthProvider>
+          <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px' } }} />
+          <AppShell />
+        </AuthProvider>
+      </ErrorBoundary>
+    </ClickSpark>
   );
 }
